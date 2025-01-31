@@ -3,7 +3,7 @@
 Plugin Name: AI Chatbot Plugin
 Description: A plugin to integrate an AI-powered chatbot into your WordPress website.
 Version: 1.0
-Author: Hemal Mondal
+Author: Your Name
 */
 
 // Add admin menu for chatbot settings
@@ -25,8 +25,16 @@ function chatbot_settings_page() {
     // Check if the API key is being saved
     if (isset($_POST['chatbot_api_key'])) {
         $api_key = sanitize_text_field($_POST['chatbot_api_key']);
-        update_option('chatbot_api_key', $api_key);
-        echo '<div class="notice notice-success"><p>API key saved successfully!</p></div>';
+
+        // Validate the API key
+        $is_valid = chatbot_validate_api_key($api_key);
+
+        if ($is_valid) {
+            update_option('chatbot_api_key', $api_key);
+            echo '<div class="notice notice-success"><p>API connected successfully!</p></div>';
+        } else {
+            echo '<div class="notice notice-error"><p>Invalid API key. Please try again.</p></div>';
+        }
     }
 
     // Get the saved API key
@@ -49,6 +57,25 @@ function chatbot_settings_page() {
         </form>
     </div>
     <?php
+}
+
+// Validate the API key
+function chatbot_validate_api_key($api_key) {
+    // Replace this with your actual API validation logic
+    $response = wp_remote_get('https://your-api.com/validate', array(
+        'headers' => array(
+            'Authorization' => 'Bearer ' . $api_key
+        )
+    ));
+
+    if (is_wp_error($response)) {
+        return false;
+    }
+
+    $body = wp_remote_retrieve_body($response);
+    $data = json_decode($body, true);
+
+    return isset($data['valid']) && $data['valid'] === true;
 }
 
 // Enqueue scripts and styles
