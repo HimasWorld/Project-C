@@ -3,29 +3,53 @@
 Plugin Name: AI Chatbot Plugin
 Description: A plugin to integrate an AI-powered chatbot into your WordPress website.
 Version: 1.0
-Author: Your Name
+Author: Hemal Mondal
 */
 
-// Hook to display notice on plugin activation
-register_activation_hook(__FILE__, 'chatbot_activation_notice');
-
-function chatbot_activation_notice() {
-    // Set a transient to show the notice
-    set_transient('chatbot_activation_notice', true, 5);
+// Add admin menu for chatbot settings
+function chatbot_admin_menu() {
+    add_menu_page(
+        'Chatbot Settings', // Page title
+        'Chatbot',          // Menu title
+        'manage_options',   // Capability
+        'chatbot-settings', // Menu slug
+        'chatbot_settings_page', // Callback function
+        'dashicons-format-chat', // Icon
+        6                    // Position
+    );
 }
+add_action('admin_menu', 'chatbot_admin_menu');
 
-// Display the notice
-function chatbot_admin_notice() {
-    if (get_transient('chatbot_activation_notice')) {
-        ?>
-        <div class="notice notice-success is-dismissible">
-            <p>Welcome to the AI Chatbot Plugin! Please <a href="<?php echo admin_url('admin.php?page=chatbot-settings'); ?>">enter your API key</a> to get started.</p>
-        </div>
-        <?php
-        delete_transient('chatbot_activation_notice');
+// Create the settings page
+function chatbot_settings_page() {
+    // Check if the API key is being saved
+    if (isset($_POST['chatbot_api_key'])) {
+        $api_key = sanitize_text_field($_POST['chatbot_api_key']);
+        update_option('chatbot_api_key', $api_key);
+        echo '<div class="notice notice-success"><p>API key saved successfully!</p></div>';
     }
+
+    // Get the saved API key
+    $api_key = get_option('chatbot_api_key', '');
+
+    ?>
+    <div class="wrap">
+        <h1>Chatbot Settings</h1>
+        <form method="post" action="">
+            <table class="form-table">
+                <tr>
+                    <th scope="row"><label for="chatbot_api_key">API Key</label></th>
+                    <td>
+                        <input name="chatbot_api_key" type="text" id="chatbot_api_key" value="<?php echo esc_attr($api_key); ?>" class="regular-text">
+                        <p class="description">Enter your API key to connect the chatbot to your backend.</p>
+                    </td>
+                </tr>
+            </table>
+            <?php submit_button('Save API Key'); ?>
+        </form>
+    </div>
+    <?php
 }
-add_action('admin_notices', 'chatbot_admin_notice');
 
 // Enqueue scripts and styles
 function chatbot_enqueue_scripts() {
@@ -48,63 +72,6 @@ function chatbot_display() {
     include plugin_dir_path(__FILE__) . 'chatbot.php';
 }
 add_action('wp_footer', 'chatbot_display');
-
-// Add admin menu for chatbot settings
-function chatbot_admin_menu() {
-    add_menu_page(
-        'Chatbot Settings', // Page title
-        'Chatbot',          // Menu title
-        'manage_options',   // Capability
-        'chatbot-settings', // Menu slug
-        'chatbot_settings_page', // Callback function
-        'dashicons-format-chat', // Icon
-        6                    // Position
-    );
-}
-add_action('admin_menu', 'chatbot_admin_menu');
-
-// Create the settings page
-function chatbot_settings_page() {
-    ?>
-    <div class="wrap">
-        <h1>Chatbot Settings</h1>
-        <form method="post" action="options.php">
-            <?php
-            settings_fields('chatbot_options_group');
-            do_settings_sections('chatbot-settings');
-            submit_button();
-            ?>
-        </form>
-    </div>
-    <?php
-}
-
-// Initialize settings
-function chatbot_settings_init() {
-    register_setting('chatbot_options_group', 'chatbot_options', 'chatbot_options_validate');
-
-    add_settings_section('chatbot_main_section', 'Main Settings', 'chatbot_section_text', 'chatbot-settings');
-
-    add_settings_field('chatbot_api_key', 'API Key', 'chatbot_api_key_input', 'chatbot-settings', 'chatbot_main_section');
-}
-add_action('admin_init', 'chatbot_settings_init');
-
-// Section text
-function chatbot_section_text() {
-    echo '<p>Enter your API key to connect the chatbot to your backend.</p>';
-}
-
-// API key input field
-function chatbot_api_key_input() {
-    $options = get_option('chatbot_options');
-    echo "<input id='chatbot_api_key' name='chatbot_options[api_key]' size='40' type='text' value='{$options['api_key']}' />";
-}
-
-// Validate input
-function chatbot_options_validate($input) {
-    $newinput['api_key'] = trim($input['api_key']);
-    return $newinput;
-}
 
 // Shortcode to display chatbot
 function chatbot_shortcode() {
