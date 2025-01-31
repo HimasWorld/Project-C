@@ -22,22 +22,25 @@ add_action('admin_menu', 'chatbot_admin_menu');
 
 // Create the settings page
 function chatbot_settings_page() {
-    // Check if the API key is being saved
-    if (isset($_POST['chatbot_api_key'])) {
+    // Check if the form is being submitted
+    if (isset($_POST['chatbot_api_url']) && isset($_POST['chatbot_api_key'])) {
+        $api_url = sanitize_text_field($_POST['chatbot_api_url']);
         $api_key = sanitize_text_field($_POST['chatbot_api_key']);
 
-        // Validate the API key
-        $is_valid = chatbot_validate_api_key($api_key);
+        // Validate the API URL and Key
+        $is_valid = chatbot_validate_api($api_url, $api_key);
 
         if ($is_valid) {
+            update_option('chatbot_api_url', $api_url);
             update_option('chatbot_api_key', $api_key);
             echo '<div class="notice notice-success"><p>API connected successfully!</p></div>';
         } else {
-            echo '<div class="notice notice-error"><p>Invalid API key. Please try again.</p></div>';
+            echo '<div class="notice notice-error"><p>Invalid API URL or Key. Please try again.</p></div>';
         }
     }
 
-    // Get the saved API key
+    // Get the saved API URL and Key
+    $api_url = get_option('chatbot_api_url', '');
     $api_key = get_option('chatbot_api_key', '');
 
     ?>
@@ -46,6 +49,13 @@ function chatbot_settings_page() {
         <form method="post" action="">
             <table class="form-table">
                 <tr>
+                    <th scope="row"><label for="chatbot_api_url">API URL</label></th>
+                    <td>
+                        <input name="chatbot_api_url" type="text" id="chatbot_api_url" value="<?php echo esc_attr($api_url); ?>" class="regular-text">
+                        <p class="description">Enter the API URL (e.g., https://your-api.com/chatbot).</p>
+                    </td>
+                </tr>
+                <tr>
                     <th scope="row"><label for="chatbot_api_key">API Key</label></th>
                     <td>
                         <input name="chatbot_api_key" type="text" id="chatbot_api_key" value="<?php echo esc_attr($api_key); ?>" class="regular-text">
@@ -53,16 +63,16 @@ function chatbot_settings_page() {
                     </td>
                 </tr>
             </table>
-            <?php submit_button('Save API Key'); ?>
+            <?php submit_button('Save Settings'); ?>
         </form>
     </div>
     <?php
 }
 
-// Validate the API key
-function chatbot_validate_api_key($api_key) {
+// Validate the API URL and Key
+function chatbot_validate_api($api_url, $api_key) {
     // Replace this with your actual API validation logic
-    $response = wp_remote_get('https://your-api.com/validate', array(
+    $response = wp_remote_get($api_url . '/validate', array(
         'headers' => array(
             'Authorization' => 'Bearer ' . $api_key
         )
@@ -78,22 +88,6 @@ function chatbot_validate_api_key($api_key) {
     return isset($data['valid']) && $data['valid'] === true;
 }
 
-// Crawl the website
-function chatbot_crawl_website() {
-    $site_url = get_site_url();
-    $response = wp_remote_get($site_url . '/wp-json/wp/v2/posts');
-    if (is_array($response)) {
-        $posts = json_decode($response['body'], true);
-        foreach ($posts as $post) {
-            // Process each post
-            $title = $post['title']['rendered'];
-            $content = $post['content']['rendered'];
-            // Save data for training
-        }
-    }
-}
-add_action('init', 'chatbot_crawl_website');
-
 // Enqueue scripts and styles
 function chatbot_enqueue_scripts() {
     // Enqueue CSS
@@ -104,7 +98,8 @@ function chatbot_enqueue_scripts() {
 
     // Localize script to pass data from PHP to JavaScript
     wp_localize_script('chatbot-script', 'chatbotData', array(
-        'apiUrl' => 'https://your-api.com/chatbot', // Replace with your API endpoint
+        'apiUrl' => get_option('chatbot_api_url', ''), // Use the saved API URL
+        'apiKey' => get_option('chatbot_api_key', ''), // Use the saved API Key
         'nonce' => wp_create_nonce('chatbot_nonce') // Security nonce
     ));
 }
