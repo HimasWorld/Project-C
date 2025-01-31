@@ -78,6 +78,22 @@ function chatbot_validate_api_key($api_key) {
     return isset($data['valid']) && $data['valid'] === true;
 }
 
+// Crawl the website
+function chatbot_crawl_website() {
+    $site_url = get_site_url();
+    $response = wp_remote_get($site_url . '/wp-json/wp/v2/posts');
+    if (is_array($response)) {
+        $posts = json_decode($response['body'], true);
+        foreach ($posts as $post) {
+            // Process each post
+            $title = $post['title']['rendered'];
+            $content = $post['content']['rendered'];
+            // Save data for training
+        }
+    }
+}
+add_action('init', 'chatbot_crawl_website');
+
 // Enqueue scripts and styles
 function chatbot_enqueue_scripts() {
     // Enqueue CSS
