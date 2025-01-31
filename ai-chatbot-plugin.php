@@ -3,7 +3,7 @@
 Plugin Name: AI Chatbot Plugin
 Description: A plugin to integrate an AI-powered chatbot into your WordPress website.
 Version: 1.0
-Author: Your Name
+Author: Hemal Mondal
 */
 
 // Add admin menu for chatbot settings
