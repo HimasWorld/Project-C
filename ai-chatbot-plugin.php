@@ -40,7 +40,7 @@ function chatbot_settings_page() {
     }
 
     // Get the saved API URL and Key
-    $api_url = get_option('chatbot_api_url', '');
+    $api_url = get_option('chatbot_api_url', 'https://api.openai.com/v1/completions');
     $api_key = get_option('chatbot_api_key', '');
 
     ?>
@@ -51,8 +51,8 @@ function chatbot_settings_page() {
                 <tr>
                     <th scope="row"><label for="chatbot_api_url">API URL</label></th>
                     <td>
-                        <input name="chatbot_api_url" type="text" id="chatbot_api_url" value="<?php echo esc_attr($api_url); ?>" class="regular-text">
-                        <p class="description">Enter the API URL (e.g., https://your-api.com/chatbot).</p>
+                        <input name="chatbot_api_url" type="text" id="chatbot_api_url" value="<?php echo esc_attr($api_url); ?>" class="regular-text" placeholder="https://api.openai.com/v1/completions">
+                        <p class="description">Enter the API URL (e.g., https://api.openai.com/v1/completions).</p>
                     </td>
                 </tr>
                 <tr>
@@ -71,21 +71,42 @@ function chatbot_settings_page() {
 
 // Validate the API URL and Key
 function chatbot_validate_api($api_url, $api_key) {
-    // Replace this with your actual API validation logic
-    $response = wp_remote_get($api_url . '/validate', array(
+    // OpenAI API endpoint for testing
+    $url = 'https://api.openai.com/v1/completions';
+
+    // Test prompt
+    $prompt = 'Hello, world!';
+
+    // Send a test request to OpenAI
+    $response = wp_remote_post($url, array(
         'headers' => array(
-            'Authorization' => 'Bearer ' . $api_key
-        )
+            'Authorization' => 'Bearer ' . $api_key,
+            'Content-Type' => 'application/json'
+        ),
+        'body' => json_encode(array(
+            'model' => 'text-davinci-003', // Use the appropriate model
+            'prompt' => $prompt,
+            'max_tokens' => 5 // Keep it short for testing
+        ))
     ));
 
+    // Check for errors
     if (is_wp_error($response)) {
         return false;
     }
 
+    // Check the response status code
+    $status_code = wp_remote_retrieve_response_code($response);
+    if ($status_code !== 200) {
+        return false;
+    }
+
+    // Check the response body
     $body = wp_remote_retrieve_body($response);
     $data = json_decode($body, true);
 
-    return isset($data['valid']) && $data['valid'] === true;
+    // If the response contains 'choices', the API key is valid
+    return isset($data['choices']);
 }
 
 // Enqueue scripts and styles
@@ -98,7 +119,7 @@ function chatbot_enqueue_scripts() {
 
     // Localize script to pass data from PHP to JavaScript
     wp_localize_script('chatbot-script', 'chatbotData', array(
-        'apiUrl' => get_option('chatbot_api_url', ''), // Use the saved API URL
+        'apiUrl' => get_option('chatbot_api_url', 'https://api.openai.com/v1/completions'), // Use the saved API URL
         'apiKey' => get_option('chatbot_api_key', ''), // Use the saved API Key
         'nonce' => wp_create_nonce('chatbot_nonce') // Security nonce
     ));
